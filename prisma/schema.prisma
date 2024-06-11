@@ -1,0 +1,86 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Users {
+  id         Int          @id @default(autoincrement())
+  username   String
+  email      String       @unique
+  password   String
+  notes      Notes[]
+  categories Categories[]
+  tags       Tags[]
+  created_at DateTime     @default(now())
+  updated_at DateTime     @updatedAt
+}
+
+model Notes {
+  id              Int              @id @default(autoincrement())
+  user_id         Int
+  user            Users            @relation(fields: [user_id], references: [id])
+  title           String
+  content         String
+  note_tags       NoteTags[]
+  note_categories NoteCategories[]
+  attachment      Attachments[]
+  created_at      DateTime         @default(now())
+  updated_at      DateTime         @updatedAt
+}
+
+model NoteTags {
+  id      Int   @id @default(autoincrement())
+  note_id Int
+  note    Notes @relation(fields: [note_id], references: [id])
+  tag_id  Int
+  tag     Tags  @relation(fields: [tag_id], references: [id])
+}
+
+model Tags {
+  id         Int        @id @default(autoincrement())
+  user_id    Int
+  user       Users      @relation(fields: [user_id], references: [id])
+  name       String
+  note_tags  NoteTags[]
+  created_at DateTime   @default(now())
+  updated_at DateTime   @updatedAt
+}
+
+model Categories {
+  id            Int              @id @default(autoincrement())
+  user_id       Int
+  user          Users            @relation(fields: [user_id], references: [id])
+  name          String
+  description   String?
+  note_category NoteCategories[]
+  created_at    DateTime         @default(now())
+  updated_at    DateTime         @updatedAt
+}
+
+model NoteCategories {
+  id          Int        @id @default(autoincrement())
+  note_id     Int
+  note        Notes      @relation(fields: [note_id], references: [id])
+  category_id Int
+  category    Categories @relation(fields: [category_id], references: [id])
+}
+
+model Attachments {
+  id         Int      @id @default(autoincrement())
+  note_id    Int
+  note       Notes    @relation(fields: [note_id], references: [id])
+  file_path  String
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+}

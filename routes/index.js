@@ -1,0 +1,23 @@
+const express = require('express')
+const router = express.Router()
+const authRouter = require('./authRouter')
+const userRouter = require('./userRouter')
+const noteRouter = require('./noteRouter')
+const categoryRouter = require('./categoryRouter')
+const tagRouter = require('./tagRouter')
+const noteTagRouter = require('./noteTagRouter')
+const noteCategoryRouter = require('./noteCategoryRouter')
+const attachmentRouter = require('./attachmentRouter')
+const authentication = require('../middlewares/auth')
+
+router.use('/api/auth', authRouter)
+router.use(authentication)
+router.use('/api/users', userRouter)
+router.use('/api/notes', noteRouter)
+router.use('/api/categories', categoryRouter)
+router.use('/api/tags', tagRouter)
+router.use('/api/note_tags', noteTagRouter)
+router.use('/api/note_categories', noteCategoryRouter)
+router.use('/api/attachments', attachmentRouter)
+
+module.exports = router
