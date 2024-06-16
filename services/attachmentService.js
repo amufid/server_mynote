@@ -27,7 +27,7 @@ const create = async (params) => {
   const attachment = await prisma.attachments.create({
     data: {
       note_id: +params.body.note_id,
-      file_path: params.file.path
+      file_path: params.file.secure_url
     }
   })
 

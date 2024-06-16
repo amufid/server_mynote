@@ -77,11 +77,18 @@ const destroy = async (params) => {
     throw { name: 'ErrorNotFound', message: 'Tag not found' }
   }
 
-  const tag = await prisma.tags.delete({
-    where: {
-      id: +params
-    }
-  })
+  const tag = await prisma.$transaction([
+    prisma.noteTags.deleteMany({
+      where: {
+        tag_id: +params
+      }
+    }),
+    prisma.tags.delete({
+      where: {
+        id: +params
+      }
+    })
+  ])
 
   return tag;
 }

@@ -1,8 +1,10 @@
 const prisma = require('../lib/prisma')
 
 const findAll = async (params) => {
-  let { search } = params.query
+  let { search, createdAt, updatedAt } = params.query
   let searchFilter = {}
+  let createdAtFilter = {}
+  let updateAtFilter = {}
 
   if (search) {
     searchFilter = {
@@ -12,12 +14,34 @@ const findAll = async (params) => {
       }
     }
   }
-  console.log(params.id);
+
+  if (createdAt) {
+    createdAtFilter = {
+      created_at: `${createdAt}`
+    }
+  }
+
+  if (updatedAt) {
+    createdAtFilter = {
+      updated_at: `${updatedAt}`
+    }
+  }
+
+  const filterOptions = {
+    orderBy: [
+      {
+        ...createdAtFilter,
+        ...updateAtFilter,
+      }
+    ],
+  }
+
   const notes = await prisma.notes.findMany({
     where: {
       ...searchFilter,
       user_id: params.id
     },
+    ...filterOptions,
     include: {
       note_tags: {
         include: {
@@ -61,12 +85,13 @@ const findOne = async (params) => {
 
 const create = async (params) => {
   const { title, content, tag_id, category_id } = params.body
+  const imageUrl = params.path
 
   if (!title || !content) {
     throw { name: 'ErrorBadRequest', message: 'Title and content is required' }
   }
 
-  if (!tag_id && !category_id) {
+  if (!tag_id && !category_id && !imageUrl) {
     const note = await prisma.notes.create({
       data: {
         user_id: params.id,
@@ -74,6 +99,7 @@ const create = async (params) => {
         content: content
       },
     })
+
     return note;
   }
 
@@ -85,8 +111,27 @@ const create = async (params) => {
     take: 1
   })
 
-  let lastId = findLastId[0].id
-  console.log(lastId);
+  let lastIdNote = findLastId[0].id
+
+  if (imageUrl && !tag_id && !category_id) {
+    const note = await prisma.$transaction([
+      prisma.notes.create({
+        data: {
+          user_id: params.id,
+          title: title,
+          content: content
+        },
+      }),
+      prisma.attachments.create({
+        data: {
+          note_id: lastIdNote + 1,
+          file_path: imageUrl.secure_url
+        },
+      }),
+    ])
+
+    return note;
+  }
 
   const findTag = await prisma.tags.findUnique({
     where: {
@@ -94,7 +139,7 @@ const create = async (params) => {
     }
   })
 
-  if (tag_id && !category_id) {
+  if (tag_id && !category_id && !imageUrl) {
 
     if (!findTag) {
       throw { name: 'ErrorNotFound', message: 'Tag not found' }
@@ -110,12 +155,38 @@ const create = async (params) => {
       }),
       prisma.noteTags.create({
         data: {
-          note_id: lastId + 1,
+          note_id: lastIdNote + 1,
           tag_id: findTag.id
         },
-      })
-
+      }),
     ])
+
+    return note;
+  }
+
+  if (imageUrl && tag_id && !category_id) {
+    const note = await prisma.$transaction([
+      prisma.notes.create({
+        data: {
+          user_id: params.id,
+          title: title,
+          content: content
+        },
+      }),
+      prisma.noteTags.create({
+        data: {
+          note_id: lastIdNote + 1,
+          tag_id: findTag.id
+        },
+      }),
+      prisma.attachments.create({
+        data: {
+          note_id: lastIdNote + 1,
+          file_path: imageUrl.secure_url
+        }
+      }),
+    ]);
+
     return note;
   }
 
@@ -129,7 +200,7 @@ const create = async (params) => {
     throw { name: 'ErrorNotFound', message: 'Category not found' }
   }
 
-  if (!tag_id && category_id) {
+  if (category_id && !tag_id && !imageUrl) {
     const note = await prisma.$transaction([
       prisma.notes.create({
         data: {
@@ -140,7 +211,7 @@ const create = async (params) => {
       }),
       prisma.noteCategories.create({
         data: {
-          note_id: lastId + 1,
+          note_id: lastIdNote + 1,
           category_id: findCategory.id
         },
       }),
@@ -149,7 +220,33 @@ const create = async (params) => {
     return note;
   }
 
-  // membuat data baru pada 3 tabel secara bersamaan dengan $transaction
+  if (imageUrl && category_id && !tag_id) {
+    const note = await prisma.$transaction([
+      prisma.notes.create({
+        data: {
+          user_id: params.id,
+          title: title,
+          content: content
+        },
+      }),
+      prisma.noteCategories.create({
+        data: {
+          note_id: lastIdNote + 1,
+          category_id: findCategory.id
+        },
+      }),
+      prisma.attachments.create({
+        data: {
+          note_id: lastIdNote + 1,
+          file_path: imageUrl.secure_url
+        }
+      }),
+    ]);
+
+    return note;
+  }
+
+  // membuat data baru dari beberapa table secara bersamaan dengan $transaction
   const note = await prisma.$transaction([
     prisma.notes.create({
       data: {
@@ -160,15 +257,21 @@ const create = async (params) => {
     }),
     prisma.noteTags.create({
       data: {
-        note_id: lastId + 1,
+        note_id: lastIdNote + 1,
         tag_id: findTag.id
       },
     }),
     prisma.noteCategories.create({
       data: {
-        note_id: lastId + 1,
+        note_id: lastIdNote + 1,
         category_id: findCategory.id
       },
+    }),
+    prisma.attachments.create({
+      data: {
+        note_id: lastIdNote + 1,
+        file_path: imageUrl.secure_url
+      }
     }),
   ])
 
