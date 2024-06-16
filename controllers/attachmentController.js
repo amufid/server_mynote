@@ -1,4 +1,5 @@
 const attachmentService = require('../services/attachmentService')
+const handler = require('../lib/upload')
 
 const findAll = async (req, res, next) => {
   try {
@@ -22,9 +23,14 @@ const findOne = async (req, res, next) => {
 
 const create = async (req, res, next) => {
   try {
+    let file = req.file
+
+    if (file) {
+      file = await handler(file)
+    }
     const params = {
       body: req.body,
-      file: req.file
+      file: file
     }
     const attachment = await attachmentService.create(params)
 

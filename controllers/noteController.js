@@ -1,11 +1,21 @@
 const noteService = require('../services/noteService')
+const handler = require('../lib/upload')
 
 const create = async (req, res, next) => {
   try {
-    const id = req.userLoggedIn.id
-    const body = req.body
+    let file = req.file
 
-    const result = await noteService.create({ id, body })
+    if (file) {
+      file = await handler(file)
+    }
+
+    const params = {
+      id: req.userLoggedIn.id,
+      body: req.body,
+      path: file
+    }
+
+    const result = await noteService.create(params)
 
     res.status(201).json({ message: 'Success', data: result })
   } catch (err) {
