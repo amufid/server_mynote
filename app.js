@@ -3,8 +3,13 @@ const cors = require('cors')
 const morgan = require('morgan')
 const router = require('./routes/index')
 const errorHandler = require('./middlewares/errorHandler')
+const passport = require('passport');
+const GoogleStrategy = require('passport-google-oauth20').Strategy;
+const session = require('express-session')
+const prisma = require('./lib/prisma')
+require('dotenv').config();
 
-const PORT = 5000
+const PORT = process.env.PORT
 const app = express()
 
 app.use(morgan('dev'))
@@ -16,7 +21,62 @@ app.use(cors({
   methods: "GET, POST, PUT, DELETE, PATCH, OPTIONS",
 }))
 
-app.use(router)
+// middleware oauth google 
+passport.use(new GoogleStrategy(
+  {
+    clientID: process.env.YOUR_GOOGLE_CLIENT_ID,
+    clientSecret: process.env.YOUR_GOOGLE_CLIENT_SECRET,
+    callbackURL: 'http://localhost:5000/api/oauth/google/callback',
+  },
+  async (accessToken, refreshToken, profile, cb) => {
+
+    const username = profile.displayName
+    const email = profile.emails
+
+    try {
+      const user = await prisma.users.findUnique({
+        where: { email: email[0].value }
+      })
+
+      if (user) {
+        return cb(null, user);
+      }
+
+      await prisma.users.create({
+        data: {
+          username: username,
+          email: email[0].value,
+          password: email[0].value,
+        }
+      })
+
+      return cb(null, user);
+    } catch (error) {
+      console.log(error)
+      return cb(null, error);
+    }
+  }
+));
+
+passport.serializeUser((user, done) => {
+  done(null, user);
+});
+
+passport.deserializeUser((user, done) => {
+  done(null, user);
+});
+
+app.use(session({
+  secret: process.env.JWT_SECRET,
+  resave: false,
+  saveUninitialized: true,
+  cookie: { secure: true }
+}));
+
+app.use(passport.initialize());
+app.use(passport.session());
+
+app.use(router);
 app.use(errorHandler)
 
 app.listen(PORT, () => {

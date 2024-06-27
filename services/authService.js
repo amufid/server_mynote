@@ -1,5 +1,5 @@
 const prisma = require('../lib/prisma')
-const jwt = require('../lib/jwt')
+const { createToken } = require('../lib/jwt')
 const bcrypt = require('bcrypt');
 const saltRounds = 10;
 
@@ -31,10 +31,8 @@ const login = async (params) => {
 
   if (!isMatch) throw { name: 'InvalidCredentials', message: 'Wrong password' }
 
-  const token = jwt.createToken({
-    id: user.id,
-    email: user.email,
-    username: user.username,
+  const token = createToken({
+    id: user.id
   })
 
   return token
