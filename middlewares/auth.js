@@ -6,11 +6,9 @@ const authentication = async (req, res, next) => {
     if (!req.headers.authorization) {
       throw { name: 'ErroNotFound', message: 'Token not found' }
     }
-    
+
     const accessToken = req.headers.authorization.split(" ")[1];
-
-    const { id, email, username } = await verifyToken(accessToken)
-
+    const { id } = await verifyToken(accessToken)
     const user = await prisma.users.findUnique({
       where: {
         id: id
