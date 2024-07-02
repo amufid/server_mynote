@@ -7,7 +7,8 @@
     "dev": "nodemon app.js",
     "start": "node app.js",
     "prisma": "prisma",
-    "migrate": "prisma migrate dev --name init"
+    "migrate": "prisma migrate dev --name init",
+    "seed": "node prisma/seed.js"
   },
   "keywords": [],
   "author": "",
