@@ -34,23 +34,22 @@ passport.use(new GoogleStrategy(
     const email = profile.emails
 
     try {
-      const user = await prisma.users.findUnique({
+      let user = await prisma.users.findUnique({
         where: { email: email[0].value }
       })
 
       if (user) {
         return cb(null, user);
+      } else {
+        user = await prisma.users.create({
+          data: {
+            username: username,
+            email: email[0].value,
+            password: email[0].value,
+          }
+        })
+        return cb(null, user);
       }
-
-      await prisma.users.create({
-        data: {
-          username: username,
-          email: email[0].value,
-          password: email[0].value,
-        }
-      })
-
-      return cb(null, user);
     } catch (error) {
       console.log(error)
       return cb(null, error);

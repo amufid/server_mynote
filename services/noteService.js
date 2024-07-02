@@ -1,10 +1,11 @@
 const prisma = require('../lib/prisma')
 
 const findAll = async (params) => {
-  let { search, createdAt, updatedAt } = params.query
+  let { search, createdAt, updatedAt, isPinned } = params.query
   let searchFilter = {}
   let createdAtFilter = {}
   let updateAtFilter = {}
+  let pinnedFilter = {}
 
   if (search) {
     searchFilter = {
@@ -12,6 +13,12 @@ const findAll = async (params) => {
         equals: `%${search}%`,
         mode: 'insensitive'
       }
+    }
+  }
+
+  if (isPinned) {
+    pinnedFilter = {
+      isPinned: true
     }
   }
 
@@ -39,7 +46,9 @@ const findAll = async (params) => {
   const notes = await prisma.notes.findMany({
     where: {
       ...searchFilter,
-      user_id: params.id
+      ...pinnedFilter,
+      user_id: params.id,
+      deletedAt: null,
     },
     ...filterOptions,
     include: {
@@ -111,7 +120,13 @@ const create = async (params) => {
     take: 1
   })
 
-  let lastIdNote = findLastId[0].id
+  let lastIdNote = 0
+
+  if (findLastId.length >= 1) {
+    lastIdNote = findLastId[0].id
+  } else {
+    lastIdNote = 0
+  }
 
   if (imageUrl && !tag_id && !category_id) {
     const note = await prisma.$transaction([
@@ -245,6 +260,32 @@ const create = async (params) => {
 
     return note;
   }
+  console.log(lastIdNote, '<<<<<<<<<')
+  if (!imageUrl && category_id && tag_id) {
+    const note = await prisma.$transaction([
+      prisma.notes.create({
+        data: {
+          user_id: params.id,
+          title: title,
+          content: content
+        },
+      }),
+      prisma.noteCategories.create({
+        data: {
+          note_id: lastIdNote + 1,
+          category_id: findCategory.id
+        },
+      }),
+      prisma.noteTags.create({
+        data: {
+          note_id: lastIdNote + 1,
+          tag_id: findTag.id
+        },
+      }),
+    ]);
+
+    return note;
+  }
 
   // membuat data baru dari beberapa table secara bersamaan dengan $transaction
   const note = await prisma.$transaction([
@@ -326,9 +367,12 @@ const destroy = async (params) => {
         note_id: +params
       },
     }),
-    prisma.notes.delete({
+    prisma.notes.update({
       where: {
         id: +params
+      },
+      data: {
+        deletedAt: new Date()
       }
     })
   ])

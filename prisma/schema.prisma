@@ -9,9 +9,9 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  // directUrl = env("DIRECT_URL")
 }
 
 model Users {
@@ -29,12 +29,14 @@ model Users {
 model Notes {
   id              Int              @id @default(autoincrement())
   user_id         Int
-  user            Users            @relation(fields: [user_id], references: [id])
+  user            Users            @relation(fields: [user_id], references: [id], onDelete: Cascade)
   title           String
   content         String
+  isPinned        Boolean?
   note_tags       NoteTags[]
   note_categories NoteCategories[]
   attachment      Attachments[]
+  deletedAt       DateTime?
   created_at      DateTime         @default(now())
   updated_at      DateTime         @updatedAt
 }
