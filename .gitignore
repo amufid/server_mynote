@@ -1,6 +1,6 @@
 node_modules
 # Keep environment variables out of version control
 .env
-.MOCK_DATA.json
+MOCK_DATA.json
 .vercel
-./prisma/seed.js
+prisma/seed.js
