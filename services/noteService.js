@@ -70,9 +70,11 @@ const findAll = async (params) => {
 }
 
 const findOne = async (params) => {
-  const note = await prisma.notes.findUnique({
+  const { id, user_id } = params
+  const note = await prisma.notes.findFirst({
     where: {
-      id: +params
+      id: +id,
+      user_id: +user_id
     },
     include: {
       note_tags: {
@@ -260,7 +262,7 @@ const create = async (params) => {
 
     return note;
   }
-  console.log(lastIdNote, '<<<<<<<<<')
+
   if (!imageUrl && category_id && tag_id) {
     const note = await prisma.$transaction([
       prisma.notes.create({

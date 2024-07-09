@@ -7,6 +7,7 @@ const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const session = require('express-session')
 const prisma = require('./lib/prisma')
+const cookieParser = require('cookie-parser');
 require('dotenv').config();
 
 const PORT = process.env.PORT
@@ -15,10 +16,12 @@ const app = express()
 app.use(morgan('dev'))
 app.use(express.json({ limit: '5mb' }))
 app.use(express.urlencoded({ extended: true }))
+app.use(cookieParser())
 app.use(cors({
   origin: 'http://localhost:5173',
-  allowedHeaders: "Origin, X-Requested-With, Content-Type, Accept, Authorization",
+  allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Authorization', 'refreshToken'],
   methods: "GET, POST, PUT, DELETE, PATCH, OPTIONS",
+  credentials: true
 }))
 
 // middleware oauth google 
@@ -29,7 +32,7 @@ passport.use(new GoogleStrategy(
     callbackURL: 'http://localhost:5000/api/oauth/google/callback',
   },
   async (accessToken, refreshToken, profile, cb) => {
-
+    console.log(profile, '<<<<<')
     const username = profile.displayName
     const email = profile.emails
 
@@ -69,7 +72,12 @@ app.use(session({
   secret: process.env.JWT_SECRET,
   resave: false,
   saveUninitialized: true,
-  cookie: { secure: true }
+  cookie: {
+    httpOnly: false,
+    secure: false,
+    sameSite: 'Strict',
+    path: '/'
+  }
 }));
 
 app.use(passport.initialize());

@@ -15,8 +15,19 @@ const login = async (req, res, next) => {
   try {
     const body = req.body
     const user = await authService.login(body)
+    const refreshToken = user.refreshToken
 
-    res.status(200).json({ message: 'Success', accessToken: user })
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: false,
+      sameSite: 'Strict',
+      secure: false,
+      path: '/'
+    })
+
+    res.status(200).json({
+      message: 'Success',
+      accessToken: user
+    })
   } catch (err) {
     next(err);
   }
