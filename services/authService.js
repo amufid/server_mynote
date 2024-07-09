@@ -1,5 +1,5 @@
 const prisma = require('../lib/prisma')
-const { createToken } = require('../lib/jwt')
+const { createToken, createRefreshToken } = require('../lib/jwt')
 const bcrypt = require('bcrypt');
 const saltRounds = 10;
 
@@ -35,7 +35,11 @@ const login = async (params) => {
     id: user.id
   })
 
-  return token
+  const refreshToken = createRefreshToken({
+    id: user.id
+  })
+
+  return { token, refreshToken }
 }
 
 const findAll = async () => {

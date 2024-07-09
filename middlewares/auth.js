@@ -1,33 +1,61 @@
-const { verifyToken } = require('../lib/jwt');
+const { verifyRefreshToken, verifyToken } = require('../lib/jwt');
 const prisma = require('../lib/prisma');
 
 const authentication = async (req, res, next) => {
   try {
-    if (!req.headers.authorization) {
-      throw { name: 'ErroNotFound', message: 'Token not found' }
+    if (!req.headers.authorization && !req.cookies.refreshToken) {
+      throw { name: 'Unauthorized', message: 'Unauthorized' }
+    } else if (!req.headers.authorization || !req.cookies.refreshToken) {
+      throw { name: 'Unauthorized', message: 'Unauthorized' }
     }
 
     const accessToken = req.headers.authorization.split(" ")[1];
-    const { id } = await verifyToken(accessToken)
-    const user = await prisma.users.findUnique({
-      where: {
-        id: id
+    const refreshToken = req.cookies.refreshToken;
+
+    try {
+      const decoded = await verifyToken(accessToken)
+      let user = await prisma.users.findUnique({
+        where: {
+          id: decoded.id
+        }
+      })
+
+      if (!user) {
+        throw { name: 'Unauthorized', message: 'Unauthorized' }
       }
-    })
 
-    if (!user) {
-      throw { name: 'ErrorNotFound', message: 'User not found' }
+      req.userLoggedIn = {
+        id: user.id,
+        email: user.email,
+      };
+
+      next();
+    } catch (error) {
+
+      try {
+        const decoded = await verifyRefreshToken(refreshToken)
+        user = await prisma.users.findUnique({
+          where: {
+            id: decoded.id
+          }
+        })
+
+        if (!user) {
+          throw { name: 'Unauthorized', message: 'Unauthorized' }
+        }
+
+        req.userLoggedIn = {
+          id: user.id,
+          email: user.email,
+        };
+
+        next();
+      } catch (error) {
+        next(error)
+      }
     }
-
-    req.userLoggedIn = {
-      id: user.id,
-      email: user.email,
-      username: user.username,
-    };
-
-    next();
-  } catch (err) {
-    throw (err)
+  } catch (error) {
+    next(error)
   }
 }
 
