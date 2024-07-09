@@ -32,7 +32,6 @@ passport.use(new GoogleStrategy(
     callbackURL: 'http://localhost:5000/api/oauth/google/callback',
   },
   async (accessToken, refreshToken, profile, cb) => {
-    console.log(profile, '<<<<<')
     const username = profile.displayName
     const email = profile.emails
 

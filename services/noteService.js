@@ -262,6 +262,32 @@ const create = async (params) => {
 
     return note;
   }
+  console.log(lastIdNote, '<<<<<<<<<')
+  if (!imageUrl && category_id && tag_id) {
+    const note = await prisma.$transaction([
+      prisma.notes.create({
+        data: {
+          user_id: params.id,
+          title: title,
+          content: content
+        },
+      }),
+      prisma.noteCategories.create({
+        data: {
+          note_id: lastIdNote + 1,
+          category_id: findCategory.id
+        },
+      }),
+      prisma.noteTags.create({
+        data: {
+          note_id: lastIdNote + 1,
+          tag_id: findTag.id
+        },
+      }),
+    ]);
+
+    return note;
+  }
 
   if (!imageUrl && category_id && tag_id) {
     const note = await prisma.$transaction([
